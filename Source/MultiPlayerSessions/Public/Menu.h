@@ -25,8 +25,8 @@ protected:
 
 	UFUNCTION()
 	void OnCreateSeesion(bool bWasSuccessful);
-	void OnFindSession(const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful);
-	void OnJoinSession(EOnJoinSessionCompleteResult::Type Result);
+	void OnFindSession(const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful) const;
+	void OnJoinSession(EOnJoinSessionCompleteResult::Type Result) const;
 	UFUNCTION()
 	void OnDestroySession(bool bWasSuccessful);
 	UFUNCTION()

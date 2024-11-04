@@ -10,7 +10,7 @@
 UMultiPlayerSessionsSubsystem::UMultiPlayerSessionsSubsystem():
 	CreateSessionCompleteDelegate(FOnCreateSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnCreateSessionComplete)),
 	FindSessionsCompleteDelegate(FOnFindSessionsCompleteDelegate::CreateUObject(this, &ThisClass::OnFindSessionComplete)),
-	JoinSessionCompleteDelegate(FOnJoinSessionCompleteDelegate::CreateUObject(this, &UMultiPlayerSessionsSubsystem::OnJoinSessionComplete)),
+	JoinSessionCompleteDelegate(FOnJoinSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnJoinSessionComplete)),
 	DestroySessionCompleteDelegate(FOnDestroySessionCompleteDelegate::CreateUObject(this, &ThisClass::OnDestroySessionComplete)),
 	StartSessionCompleteDelegate(FOnStartSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnStartSessionComplete))
 {
@@ -89,9 +89,25 @@ void UMultiPlayerSessionsSubsystem::JoinSession(const FOnlineSessionSearchResult
 	}
 	
 	JoinSessionCompleteDelegateHandle = SessionInterfaces->AddOnJoinSessionCompleteDelegate_Handle(JoinSessionCompleteDelegate);
+	
+	GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.f,
+				FColor::Yellow,
+				FString::Printf(TEXT("Joining")));
 	if(const TObjectPtr<UWorld> World = GetWorld())
 	{
+		GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.f,
+				FColor::Yellow,
+				FString::Printf(TEXT("Joining")));
 		const TObjectPtr<ULocalPlayer> LocalPlayer = World->GetFirstLocalPlayerFromController();
+		GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.f,
+				FColor::Yellow,
+				FString::Printf(TEXT("Joining")));
 		if(!SessionInterfaces->JoinSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, SearchResult))
 		{
 			GEngine->AddOnScreenDebugMessage(
@@ -142,7 +158,7 @@ void UMultiPlayerSessionsSubsystem::OnFindSessionComplete(bool bWasSuccessful)
 			-1,
 			15.f,
 			FColor::Yellow,
-			FString::Printf(TEXT("0 results")));
+			FString::Printf(TEXT("0 result")));
 		MultiPlayerOnFindSessionComplete.Broadcast(TArray<FOnlineSessionSearchResult>(), false);
 	}
 	

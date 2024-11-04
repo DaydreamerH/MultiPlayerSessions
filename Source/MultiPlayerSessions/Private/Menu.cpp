@@ -17,8 +17,7 @@ void UMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch)
 	TObjectPtr<UWorld> World = GetWorld();
 	if(World)
 	{
-		TObjectPtr<APlayerController> PlayerController = World->GetFirstPlayerController();
-		if(IsValid(PlayerController))
+		if(const TObjectPtr<APlayerController> PlayerController = World->GetFirstPlayerController(); IsValid(PlayerController))
 		{
 			FInputModeUIOnly InputModeData;
 			InputModeData.SetWidgetToFocus(TakeWidget());
@@ -76,7 +75,7 @@ void UMenu::OnCreateSeesion(bool bWasSuccessful)
 	}
 }
 
-void UMenu::OnFindSession(const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful)
+void UMenu::OnFindSession(const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful) const
 {
 	GEngine->AddOnScreenDebugMessage(
 			-1,
@@ -85,21 +84,15 @@ void UMenu::OnFindSession(const TArray<FOnlineSessionSearchResult>& SessionResul
 			FString::Printf(TEXT("Enter List Find")));
 	if(MultiPlayerSessionsSubsystem==nullptr)
 		return;
-	if(SessionResults.Num()==0)
-	GEngine->AddOnScreenDebugMessage(
-			-1,
-			15.f,
-			FColor::Yellow,
-			FString::Printf(TEXT("0 results")));
 	for(auto Result:SessionResults)
 	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			15.f,
-			FColor::Yellow,
-			FString::Printf(TEXT("List Results")));
 		FString SettingsValue;
 		Result.Session.SessionSettings.Get(FName("MatchType"),SettingsValue);
+		GEngine->AddOnScreenDebugMessage(
+		-1,
+		30.f,
+		FColor::Yellow,
+		FString::Printf(TEXT("%s, %s"), *SettingsValue, *MatchType));
 		if(SettingsValue == MatchType)
 		{
 			GEngine->AddOnScreenDebugMessage(
@@ -113,18 +106,23 @@ void UMenu::OnFindSession(const TArray<FOnlineSessionSearchResult>& SessionResul
 	}
 }
 
-void UMenu::OnJoinSession(EOnJoinSessionCompleteResult::Type Result)
+void UMenu::OnJoinSession(EOnJoinSessionCompleteResult::Type Result) const
 {
 	if(const IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get())
 	{
-		IOnlineSessionPtr SessionInterfaces = Subsystem->GetSessionInterface();
-		if(!SessionInterfaces.IsValid())
+		GEngine->AddOnScreenDebugMessage(
+					-1,
+					15.f,
+					FColor::Yellow,
+					FString::Printf(TEXT("Start Travel")));
+		
+		const IOnlineSessionPtr SessionInterfaces = Subsystem->GetSessionInterface();
+		if(SessionInterfaces.IsValid())
 		{
 			FString Address;
 			SessionInterfaces->GetResolvedConnectString(NAME_GameSession, Address);
 
-			TObjectPtr<APlayerController> PlayerController = GetGameInstance()->GetFirstLocalPlayerController();
-			if(PlayerController)
+			if(const TObjectPtr<APlayerController> PlayerController = GetGameInstance()->GetFirstLocalPlayerController())
 				PlayerController->ClientTravel(Address, TRAVEL_Absolute);
 		}
 	}
