@@ -7,6 +7,9 @@
 #include "Interfaces/OnlineSessionInterface.h"
 #include "MultiPlayerSessionsSubsystem.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMultiPlayerOnCreateSessionComplete, bool, bWasSuccessful);
+
+
 /**
  * 
  */
@@ -22,7 +25,9 @@ public:
 	void JoinSession(const FOnlineSessionSearchResult& SearchResult);
 	void DestroySession();
 	void StartSession();
-	
+
+
+	FMultiPlayerOnCreateSessionComplete MultiPlayerOnCreateSessionComplete;
 protected:
 	
 	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
@@ -35,6 +40,7 @@ protected:
 private:
 	IOnlineSessionPtr SessionInterfaces;
 
+	TSharedPtr<FOnlineSessionSettings> LastSessionSettings;
 	FOnCreateSessionCompleteDelegate CreateSessionCompleteDelegate;
 	FDelegateHandle CreateSessionCompleteDelegateHandle;
 	FOnFindSessionsCompleteDelegate FindSessionsCompleteDelegate;

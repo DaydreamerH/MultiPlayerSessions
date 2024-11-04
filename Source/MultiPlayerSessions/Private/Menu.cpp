@@ -5,8 +5,10 @@
 #include "MultiPlayerSessionsSubsystem.h"
 #include "Components/Button.h"
 
-void UMenu::MenuSetup()
+void UMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch)
 {
+	NumPublicConnections = NumberOfPublicConnections;
+	MatchType = TypeOfMatch;
 	AddToViewport();
 	SetVisibility(ESlateVisibility::Visible);
 	bIsFocusable = true;
@@ -30,10 +32,10 @@ void UMenu::MenuSetup()
 	{
 		MultiPlayerSessionsSubsystem = GameInstance->GetSubsystem<UMultiPlayerSessionsSubsystem>();
 	}
+
 	if(MultiPlayerSessionsSubsystem)
 	{
-		// Wait to complete
-		MultiPlayerSessionsSubsystem->CreateSession(4, FString("MyPlugin"));
+		MultiPlayerSessionsSubsystem->MultiPlayerOnCreateSessionComplete.AddDynamic(this, &ThisClass::OnCreateSeesion);
 	}
 }
 
@@ -53,10 +55,43 @@ bool UMenu::Initialize()
 	return true;
 }
 
+void UMenu::NativeDestruct()
+{
+	MenuTearDown();
+	Super::NativeConstruct();
+}
+
+void UMenu::OnCreateSeesion(bool bWasSuccessful)
+{
+	if(bWasSuccessful)
+	{
+		if(const TObjectPtr<UWorld> World = GetWorld())
+		{
+			World->ServerTravel("/Game/_Game/Maps/Lobby?listen");
+		}
+	}
+}
+
 void UMenu::HostButtonClick()
 {
+	if(MultiPlayerSessionsSubsystem)
+	{
+		MultiPlayerSessionsSubsystem->CreateSession(NumPublicConnections, MatchType);
+	}
 }
 
 void UMenu::JoinButtonClick()
 {
+}
+
+void UMenu::MenuTearDown()
+{
+	RemoveFromParent();
+	if(const TObjectPtr<UWorld> World = GetWorld())
+	{
+		TObjectPtr<APlayerController> PlayerController = World->GetFirstPlayerController();
+		FInputModeGameOnly InputModeData;
+		PlayerController->SetInputMode(InputModeData);
+		PlayerController->SetShowMouseCursor(false);
+	}
 }

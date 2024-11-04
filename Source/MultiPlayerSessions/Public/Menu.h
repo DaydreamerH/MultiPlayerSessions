@@ -16,9 +16,15 @@ class MULTIPLAYERSESSIONS_API UMenu : public UUserWidget
 	GENERATED_BODY()
 public:
 	UFUNCTION(BlueprintCallable)
-	void MenuSetup();
+	void MenuSetup(int32 NumberOfPublicConnections = 4, FString TypeOfMatch = "Daydreamer");
+	
 protected:
 	virtual bool Initialize() override;
+	virtual void NativeDestruct() override;
+
+	UFUNCTION()
+	void OnCreateSeesion(bool bWasSuccessful);
+	
 private:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UButton> HostButton;
@@ -30,7 +36,11 @@ private:
 	void HostButtonClick();
 	UFUNCTION()
 	void JoinButtonClick();
-	
+
+	void MenuTearDown();
 	// hanle all online session functionality
 	UMultiPlayerSessionsSubsystem* MultiPlayerSessionsSubsystem;
+
+	int32 NumPublicConnections = 4;
+	FString MatchType{TEXT("Daydreamer")};
 };
