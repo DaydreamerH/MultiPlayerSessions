@@ -28,8 +28,7 @@ void UMenu::MenuSetup(int32 NumberOfPublicConnections, FString TypeOfMatch)
 			PlayerController->SetShowMouseCursor(true);
 		}
 	}
-	TObjectPtr<UGameInstance> GameInstance = GetGameInstance();
-	if(GameInstance)
+	if(const TObjectPtr<UGameInstance> GameInstance = GetGameInstance())
 	{
 		MultiPlayerSessionsSubsystem = GameInstance->GetSubsystem<UMultiPlayerSessionsSubsystem>();
 	}
@@ -79,10 +78,56 @@ void UMenu::OnCreateSeesion(bool bWasSuccessful)
 
 void UMenu::OnFindSession(const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful)
 {
+	GEngine->AddOnScreenDebugMessage(
+			-1,
+			15.f,
+			FColor::Yellow,
+			FString::Printf(TEXT("Enter List Find")));
+	if(MultiPlayerSessionsSubsystem==nullptr)
+		return;
+	if(SessionResults.Num()==0)
+	GEngine->AddOnScreenDebugMessage(
+			-1,
+			15.f,
+			FColor::Yellow,
+			FString::Printf(TEXT("0 results")));
+	for(auto Result:SessionResults)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			15.f,
+			FColor::Yellow,
+			FString::Printf(TEXT("List Results")));
+		FString SettingsValue;
+		Result.Session.SessionSettings.Get(FName("MatchType"),SettingsValue);
+		if(SettingsValue == MatchType)
+		{
+			GEngine->AddOnScreenDebugMessage(
+			-1,
+			15.f,
+			FColor::Yellow,
+			FString::Printf(TEXT("Start Join")));
+			MultiPlayerSessionsSubsystem->JoinSession(Result);
+			return;
+		}
+	}
 }
 
 void UMenu::OnJoinSession(EOnJoinSessionCompleteResult::Type Result)
 {
+	if(const IOnlineSubsystem* Subsystem = IOnlineSubsystem::Get())
+	{
+		IOnlineSessionPtr SessionInterfaces = Subsystem->GetSessionInterface();
+		if(!SessionInterfaces.IsValid())
+		{
+			FString Address;
+			SessionInterfaces->GetResolvedConnectString(NAME_GameSession, Address);
+
+			TObjectPtr<APlayerController> PlayerController = GetGameInstance()->GetFirstLocalPlayerController();
+			if(PlayerController)
+				PlayerController->ClientTravel(Address, TRAVEL_Absolute);
+		}
+	}
 }
 
 void UMenu::OnDestroySession(bool bWasSuccessful)
@@ -103,6 +148,10 @@ void UMenu::HostButtonClick()
 
 void UMenu::JoinButtonClick()
 {
+	if(MultiPlayerSessionsSubsystem)
+	{
+		MultiPlayerSessionsSubsystem->FindSessions(10000);
+	}
 }
 
 void UMenu::MenuTearDown()
