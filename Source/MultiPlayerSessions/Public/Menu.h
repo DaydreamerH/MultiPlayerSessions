@@ -17,7 +17,7 @@ class MULTIPLAYERSESSIONS_API UMenu : public UUserWidget
 	GENERATED_BODY()
 public:
 	UFUNCTION(BlueprintCallable)
-	void MenuSetup(int32 NumberOfPublicConnections = 4, FString TypeOfMatch = "Daydreamer");
+	void MenuSetup(int32 NumberOfPublicConnections = 4, FString TypeOfMatch = "Daydreamer", FString LobbyPath = FString(TEXT("/Game/_Game/Maps/Lobby")));
 	
 protected:
 	virtual bool Initialize() override;
@@ -49,4 +49,5 @@ private:
 
 	int32 NumPublicConnections = 4;
 	FString MatchType{TEXT("Daydreamer")};
+	FString PathToLobby{TEXT("")};
 };

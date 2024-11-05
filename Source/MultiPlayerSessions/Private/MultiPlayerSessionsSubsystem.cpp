@@ -28,7 +28,11 @@ void UMultiPlayerSessionsSubsystem::CreateSession(int32 NumPublicConnections, FS
 	auto ExistingSession = SessionInterfaces->GetNamedSession(NAME_GameSession);
 	if(ExistingSession!=nullptr)
 	{
-		SessionInterfaces->DestroySession(NAME_GameSession);
+		bCreateSessionOnDestroy = true;
+		LastNumPublicConnection = NumPublicConnections;
+		LastMatchType = MatchType;
+		DestroySession();
+		return;
 	}
 
 	CreateSessionCompleteDelegateHandle = SessionInterfaces->AddOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegate);
@@ -40,6 +44,7 @@ void UMultiPlayerSessionsSubsystem::CreateSession(int32 NumPublicConnections, FS
 	LastSessionSettings->bShouldAdvertise = true;
 	LastSessionSettings->bUsesPresence = true;
 	LastSessionSettings->bUseLobbiesIfAvailable = true;
+	LastSessionSettings->BuildUniqueId = 1;
 	LastSessionSettings->Set(FName("MatchType"), MatchType, EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 	TObjectPtr<ULocalPlayer>LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
 	if(!SessionInterfaces->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *LastSessionSettings))
@@ -62,18 +67,8 @@ void UMultiPlayerSessionsSubsystem::FindSessions(int32 MaxSearchResults)
 	LastSessionSearch->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
 	
 	const TObjectPtr<ULocalPlayer> LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
-	GEngine->AddOnScreenDebugMessage(
-			-1,
-			15.f,
-			FColor::Yellow,
-			FString::Printf(TEXT("Start Find")));
 	if(!SessionInterfaces->FindSessions(*LocalPlayer->GetPreferredUniqueNetId(), LastSessionSearch.ToSharedRef()))
 	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			15.f,
-			FColor::Yellow,
-			FString::Printf(TEXT("Failed Find")));
 		SessionInterfaces->ClearOnFindSessionsCompleteDelegate_Handle(CreateSessionCompleteDelegateHandle);
 		MultiPlayerOnFindSessionComplete.Broadcast(TArray<FOnlineSessionSearchResult>(), false);
 	}
@@ -89,32 +84,11 @@ void UMultiPlayerSessionsSubsystem::JoinSession(const FOnlineSessionSearchResult
 	}
 	
 	JoinSessionCompleteDelegateHandle = SessionInterfaces->AddOnJoinSessionCompleteDelegate_Handle(JoinSessionCompleteDelegate);
-	
-	GEngine->AddOnScreenDebugMessage(
-				-1,
-				15.f,
-				FColor::Yellow,
-				FString::Printf(TEXT("Joining")));
 	if(const TObjectPtr<UWorld> World = GetWorld())
 	{
-		GEngine->AddOnScreenDebugMessage(
-				-1,
-				15.f,
-				FColor::Yellow,
-				FString::Printf(TEXT("Joining")));
 		const TObjectPtr<ULocalPlayer> LocalPlayer = World->GetFirstLocalPlayerFromController();
-		GEngine->AddOnScreenDebugMessage(
-				-1,
-				15.f,
-				FColor::Yellow,
-				FString::Printf(TEXT("Joining")));
 		if(!SessionInterfaces->JoinSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, SearchResult))
 		{
-			GEngine->AddOnScreenDebugMessage(
-			-1,
-			15.f,
-			FColor::Yellow,
-			FString::Printf(TEXT("Join Failed")));
 			SessionInterfaces->ClearOnJoinSessionCompleteDelegate_Handle(JoinSessionCompleteDelegateHandle);
 			MultiPlayerOnJoinSessionComplete.Broadcast(EOnJoinSessionCompleteResult::UnknownError);
 		}
@@ -123,6 +97,19 @@ void UMultiPlayerSessionsSubsystem::JoinSession(const FOnlineSessionSearchResult
 
 void UMultiPlayerSessionsSubsystem::DestroySession()
 {
+	if(!SessionInterfaces.IsValid())
+	{
+		MultiPlayerOnDestroySessionComplete.Broadcast(false);
+		return;
+	}
+
+	DestroySessionCompleteDelegateHandle = SessionInterfaces->AddOnDestroySessionCompleteDelegate_Handle(DestroySessionCompleteDelegate);
+
+	if(!SessionInterfaces->DestroySession(NAME_GameSession))
+	{
+		SessionInterfaces->ClearOnDestroySessionCompleteDelegate_Handle(DestroySessionCompleteDelegateHandle);
+		MultiPlayerOnDestroySessionComplete.Broadcast(false);
+	}
 	
 }
 
@@ -141,11 +128,6 @@ void UMultiPlayerSessionsSubsystem::OnCreateSessionComplete(FName SessionName, b
 
 void UMultiPlayerSessionsSubsystem::OnFindSessionComplete(bool bWasSuccessful)
 {
-	GEngine->AddOnScreenDebugMessage(
-			-1,
-			15.f,
-			FColor::Yellow,
-			FString::Printf(TEXT("Success find")));
 	
 	if(!SessionInterfaces.IsValid())
 	{
@@ -154,11 +136,6 @@ void UMultiPlayerSessionsSubsystem::OnFindSessionComplete(bool bWasSuccessful)
 
 	if(LastSessionSearch->SearchResults.Num()<=0)
 	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			15.f,
-			FColor::Yellow,
-			FString::Printf(TEXT("0 result")));
 		MultiPlayerOnFindSessionComplete.Broadcast(TArray<FOnlineSessionSearchResult>(), false);
 	}
 	
@@ -174,6 +151,17 @@ void UMultiPlayerSessionsSubsystem::OnJoinSessionComplete(FName SessionName, EOn
 
 void UMultiPlayerSessionsSubsystem::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful)
 {
+	if(SessionInterfaces)
+	{
+		SessionInterfaces->ClearOnDestroySessionCompleteDelegate_Handle(DestroySessionCompleteDelegateHandle);
+		
+	}
+	if(bWasSuccessful&&bCreateSessionOnDestroy)
+	{
+		bCreateSessionOnDestroy = false;
+		CreateSession(LastNumPublicConnection, LastMatchType);
+	}
+	MultiPlayerOnDestroySessionComplete.Broadcast(bWasSuccessful);
 }
 
 void UMultiPlayerSessionsSubsystem::OnStartSessionComplete(FName SessionName, bool bWasSuccessful)
