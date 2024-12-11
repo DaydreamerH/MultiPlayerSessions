@@ -69,7 +69,7 @@ void UMultiPlayerSessionsSubsystem::FindSessions(int32 MaxSearchResults)
 	const TObjectPtr<ULocalPlayer> LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
 	if(!SessionInterfaces->FindSessions(*LocalPlayer->GetPreferredUniqueNetId(), LastSessionSearch.ToSharedRef()))
 	{
-		SessionInterfaces->ClearOnFindSessionsCompleteDelegate_Handle(CreateSessionCompleteDelegateHandle);
+		SessionInterfaces->ClearOnFindSessionsCompleteDelegate_Handle(FindSessionCompleteDelegateHandle);
 		MultiPlayerOnFindSessionComplete.Broadcast(TArray<FOnlineSessionSearchResult>(), false);
 	}
 
